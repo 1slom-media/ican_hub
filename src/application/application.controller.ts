@@ -5,7 +5,6 @@ import {
   Get,
   Param,
   Post,
-  Put,
   Req,
   Res,
 } from '@nestjs/common';
@@ -72,7 +71,7 @@ export class ApplicationController {
   }
 
   @ApiOperation({ summary: 'Ican reject application' })
-  @Put('/broker/reject/:id')
+  @Delete('/broker/reject/:id')
   async rejected(@Param('id') id: string, @Req() req: Request) {
     return this.applicationService.rejectApp(id, req);
   }

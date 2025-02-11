@@ -38,14 +38,20 @@ export class ApplicationController {
 
   @ApiOperation({ summary: 'Ican add period' })
   @Post('/broker/add-period')
-  async getStatus(@Body() data: AddPeriodDto, @Req() req: Request) {
-    return this.applicationService.getStatus(data, req);
+  async addPeriod(@Body() data: AddPeriodDto, @Req() req: Request) {
+    return this.applicationService.addPeriod(data, req);
   }
 
   @ApiOperation({ summary: 'Ican verify contract otp if new_client true' })
   @Post('/broker/confirm-contract-otp')
   async verifyOtp(@Body() data: VerifyNewClientDto, @Req() req: Request) {
     return this.applicationService.verifyOtp(data, req);
+  }
+
+  @ApiOperation({ summary: 'Ican get status application' })
+  @Get('/broker/get/status/:id')
+  async getStatus(@Param('id') id: string, @Req() req: Request) {
+    return this.applicationService.getStatus(id, req);
   }
 
   @ApiOperation({ summary: 'Ican get schedule' })

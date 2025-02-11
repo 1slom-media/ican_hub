@@ -14,13 +14,13 @@ export class AuthService {
 
     if (response.statusCode === true && response.result) {
       return {
-        success: true,
+        status: true,
         access_token: response?.result?.access_token,
       };
     }
     return {
-      success: false,
-      message: response?.message,
+      status: false,
+      error: response?.message,
     };
   }
 
@@ -31,13 +31,13 @@ export class AuthService {
 
     if (response.statusCode === true && response.result) {
       return {
-        success: true,
+        status: true,
         access_token: response?.result?.access_token,
       };
     }
     return {
-      success: false,
-      message: response?.message,
+      status: false,
+      error: response?.message,
     };
   }
 }

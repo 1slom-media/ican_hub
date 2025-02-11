@@ -36,8 +36,8 @@ export class ApplicationService {
     const token = req.headers.authorization;
     if (!token) {
       return {
-        success: false,
-        message: 'Authorization token is missing',
+        status: false,
+        error: 'Authorization token is missing',
       };
     }
 
@@ -45,8 +45,8 @@ export class ApplicationService {
 
     if (!app) {
       return {
-        success: false,
-        message: 'Application not found',
+        status: false,
+        error: 'Application not found',
       };
     }
 
@@ -63,7 +63,7 @@ export class ApplicationService {
       );
 
       if (periodResponse.statusCode !== 200 || !periodResponse.result) {
-        return { success: false, message: 'Error fetching period-summ data' };
+        return { status: false, error: 'Error fetching period-summ data' };
       }
 
       limit = periodResponse.result.map((item) => ({
@@ -72,18 +72,18 @@ export class ApplicationService {
       }));
 
       return {
-        success: true,
+        status: true,
         limit,
       };
     } else if (app.state == 'failed' || app.status != 'scoring') {
       return {
-        success: 'fail',
-        message: response.message || 'No limit available',
+        status: 'fail',
+        error: response.error || 'No limit available',
       };
     } else {
       return {
-        success: false,
-        message: response.message || 'No limit available',
+        status: false,
+        error: response.message || 'No limit available',
       };
     }
   }
@@ -93,8 +93,8 @@ export class ApplicationService {
     const token = req.headers.authorization;
     if (!token) {
       return {
-        success: false,
-        message: 'Authorization token is missing',
+        status: false,
+        error: 'Authorization token is missing',
       };
     }
 
@@ -102,14 +102,15 @@ export class ApplicationService {
 
     if (!app) {
       return {
-        success: false,
-        message: 'Application not found',
+        status: false,
+        error: 'Application not found',
       };
     }
     try {
       const body = {
         name: data.name,
         amount: data.amount,
+        price: data.amount,
         count: 1,
         application: data.app_id,
       };
@@ -121,23 +122,23 @@ export class ApplicationService {
       );
       if (response.statusCode === true && response.result) {
         return {
-          success: true,
+          status: true,
         };
       }
     } catch (error) {
       return {
-        success: false,
-        message: error.message,
+        status: false,
+        error: error.message,
       };
     }
   }
 
-  async getStatus(data: AddPeriodDto, req: Request) {
+  async addPeriod(data: AddPeriodDto, req: Request) {
     const token = req.headers.authorization;
     if (!token) {
       return {
-        success: false,
-        message: 'Authorization token is missing',
+        status: false,
+        error: 'Authorization token is missing',
       };
     }
 
@@ -145,8 +146,8 @@ export class ApplicationService {
 
     if (!app) {
       return {
-        success: false,
-        message: 'Application not found',
+        status: false,
+        error: 'Application not found',
       };
     }
 
@@ -165,19 +166,70 @@ export class ApplicationService {
       const { is_anorbank_new_client } = apiResponse?.result;
       if (is_anorbank_new_client === true) {
         return {
-          success: true,
+          status: true,
           is_otp: true,
         };
       } else {
         return {
-          success: true,
+          status: true,
           is_otp: false,
         };
       }
     } catch (error) {
       return {
-        success: false,
-        message: error.message,
+        status: false,
+        error: error.message,
+      };
+    }
+  }
+
+  async getStatus(app_id: string, req: Request) {
+    const token = req.headers.authorization;
+    if (!token) {
+      return {
+        status: false,
+        error: 'Authorization token is missing',
+      };
+    }
+
+    const app = await this.appGetOne(app_id);
+
+    if (!app) {
+      return {
+        status: false,
+        error: 'Application not found',
+      };
+    }
+
+    try {
+      const apiResponse = await this.apiService.getApi(
+        `/application/get/status/${app_id}`,
+        token,
+      );
+      if (apiResponse.statusCode === 200 && apiResponse.result) {
+        const { result } = apiResponse;
+        const data = {
+          id: result.id,
+          b_status: result.b_status,
+          b_state: result.b_state,
+          status: result.status,
+          state: result.state,
+          is_anorbank_new_client: result.is_anorbank_new_client,
+        };
+        return {
+          status: true,
+          reuslt:data,
+        };
+      } else {
+        return {
+          status: true,
+          error: apiResponse.message,
+        };
+      }
+    } catch (error) {
+      return {
+        status: false,
+        error: error.message,
       };
     }
   }
@@ -187,8 +239,8 @@ export class ApplicationService {
       const token = req.headers.authorization;
       if (!token) {
         return {
-          success: false,
-          message: 'Authorization token is missing',
+          status: false,
+          error: 'Authorization token is missing',
         };
       }
 
@@ -196,8 +248,8 @@ export class ApplicationService {
 
       if (!app) {
         return {
-          success: false,
-          message: 'Application not found',
+          status: false,
+          error: 'Application not found',
         };
       }
 
@@ -212,17 +264,17 @@ export class ApplicationService {
         body,
       );
       if (response.statusCode === 201) {
-        return { success: true };
+        return { status: true };
       }
 
       return {
-        success: false,
-        message: response.message || 'API request failed',
+        status: false,
+        error: response.message || 'API request failed',
       };
     } catch (error) {
       return {
-        success: false,
-        message: error.message || 'An unexpected error occurred',
+        status: false,
+        error: error.message || 'An unexpected error occurred',
       };
     }
   }
@@ -231,8 +283,8 @@ export class ApplicationService {
     const token = req.headers.authorization;
     if (!token) {
       return {
-        success: false,
-        message: 'Authorization token is missing',
+        status: false,
+        error: 'Authorization token is missing',
       };
     }
 
@@ -240,8 +292,8 @@ export class ApplicationService {
 
     if (!app) {
       return {
-        success: false,
-        message: 'Application not found',
+        status: false,
+        error: 'Application not found',
       };
     }
 
@@ -254,8 +306,8 @@ export class ApplicationService {
 
     if (!scheduleFileUrl) {
       return res.status(404).json({
-        success: false,
-        message: 'Schedule file not found',
+        status: false,
+        error: 'Schedule file not found',
       });
     }
 
@@ -280,8 +332,8 @@ export class ApplicationService {
     } catch (error) {
       console.error('Error downloading the schedule file:', error);
       return res.status(500).json({
-        success: false,
-        message: 'Error downloading the schedule file',
+        status: false,
+        error: 'Error downloading the schedule file',
       });
     }
   }
@@ -290,16 +342,16 @@ export class ApplicationService {
     const token = req.headers.authorization;
     if (!token) {
       return {
-        success: false,
-        message: 'Authorization token is missing',
+        status: false,
+        error: 'Authorization token is missing',
       };
     }
 
     const app = await this.appGetOne(app_id);
     if (!app) {
       return {
-        success: false,
-        message: 'Application not found',
+        status: false,
+        error: 'Application not found',
       };
     }
 
@@ -313,8 +365,8 @@ export class ApplicationService {
         const result = response.result;
 
         return {
-          success: true,
-          data: {
+          status: true,
+          result: {
             id: result.id,
             period: result.period,
             provider: result.provider,
@@ -334,14 +386,14 @@ export class ApplicationService {
         };
       } else {
         return {
-          success: false,
-          message: 'Failed to fetch application details',
+          status: false,
+          error: 'Failed to fetch application details',
         };
       }
     } catch (error) {
       return {
-        success: false,
-        message: error.message,
+        status: false,
+        error: error.message,
       };
     }
   }
@@ -350,8 +402,8 @@ export class ApplicationService {
     const token = req.headers.authorization;
     if (!token) {
       return {
-        success: false,
-        message: 'Authorization token is missing',
+        status: false,
+        error: 'Authorization token is missing',
       };
     }
 
@@ -359,8 +411,8 @@ export class ApplicationService {
 
     if (!app) {
       return {
-        success: false,
-        message: 'Application not found',
+        status: false,
+        error: 'Application not found',
       };
     }
 
@@ -370,12 +422,12 @@ export class ApplicationService {
     );
     if (response.statusCode == true) {
       return {
-        success: true,
+        status: true,
       };
     }
     return {
-      success: false,
-      message: response.message,
+      status: false,
+      error: response.message,
     };
   }
 
@@ -383,8 +435,8 @@ export class ApplicationService {
     const token = req.headers.authorization;
     if (!token) {
       return {
-        success: false,
-        message: 'Authorization token is missing',
+        status: false,
+        error: 'Authorization token is missing',
       };
     }
 
@@ -392,8 +444,8 @@ export class ApplicationService {
 
     if (!app) {
       return {
-        success: false,
-        message: 'Application not found',
+        status: false,
+        error: 'Application not found',
       };
     }
 
@@ -404,11 +456,11 @@ export class ApplicationService {
     );
     if (response.reason_of_reject == 'Клиент отказался') {
       return {
-        success: true,
+        status: true,
       };
     }
     return {
-      success: false,
+      status: false,
     };
   }
 }

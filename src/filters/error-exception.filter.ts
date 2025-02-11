@@ -14,8 +14,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const exceptionResponse: any = exception.getResponse();
 
     response.status(400).json({
-      success: false,
-      message: exceptionResponse.message || 'Invalid request',
+      status: false,
+      error: exceptionResponse.message || 'Invalid request',
     });
   }
 }

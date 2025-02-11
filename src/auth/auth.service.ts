@@ -15,12 +15,18 @@ export class AuthService {
     if (response.statusCode === true && response.result) {
       return {
         status: true,
-        access_token: response?.result?.access_token,
+        result: {
+          access_token: response?.result?.access_token,
+        },
+        error: null,
       };
     }
     return {
       status: false,
-      error: response?.message,
+      result: null,
+      error: {
+        message: response?.message,
+      },
     };
   }
 
@@ -32,12 +38,18 @@ export class AuthService {
     if (response.statusCode === true && response.result) {
       return {
         status: true,
-        access_token: response?.result?.access_token,
+        result: {
+          access_token: response?.result?.access_token,
+        },
+        error: null,
       };
     }
     return {
       status: false,
-      error: response?.message,
+      result: null,
+      error: {
+        message: response?.message,
+      },
     };
   }
 }

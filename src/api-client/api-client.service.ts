@@ -32,7 +32,10 @@ export class ApiClientService {
         'Unknown error occurred';
       return {
         status: false,
-        error: `API request failed: ${errorMessage}`,
+        error: {
+          message: `API request failed: ${errorMessage}`,
+        },
+        result:null,
       };
     }
   }

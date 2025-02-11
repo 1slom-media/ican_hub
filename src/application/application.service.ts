@@ -37,7 +37,10 @@ export class ApplicationService {
     if (!token) {
       return {
         status: false,
-        error: 'Authorization token is missing',
+        error: {
+          message: 'Authorization token is missing',
+        },
+        result: null,
       };
     }
 
@@ -46,7 +49,10 @@ export class ApplicationService {
     if (!app) {
       return {
         status: false,
-        error: 'Application not found',
+        error: {
+          message: 'Application not found',
+        },
+        result: null,
       };
     }
 
@@ -63,7 +69,10 @@ export class ApplicationService {
       );
 
       if (periodResponse.statusCode !== 200 || !periodResponse.result) {
-        return { status: false, error: 'Error fetching period-summ data' };
+        return {
+          status: false,
+          error: { message: 'Error fetching period-summ data' },
+        };
       }
 
       limit = periodResponse.result.map((item) => ({
@@ -73,17 +82,22 @@ export class ApplicationService {
 
       return {
         status: true,
-        limit,
+        result: { provider: response?.provider, limit },
+        error: null,
       };
     } else if (app.state == 'failed' || app.status != 'scoring') {
       return {
-        status: 'fail',
-        error: response.error || 'No limit available',
+        status: false,
+        error: {
+          message: response.message || 'No limit available',
+        },
+        result: null,
       };
     } else {
       return {
-        status: false,
-        error: response.message || 'No limit available',
+        status: true,
+        result: null,
+        error: null,
       };
     }
   }
@@ -94,7 +108,10 @@ export class ApplicationService {
     if (!token) {
       return {
         status: false,
-        error: 'Authorization token is missing',
+        error: {
+          message: 'Authorization token is missing',
+        },
+        result: null,
       };
     }
 
@@ -103,7 +120,10 @@ export class ApplicationService {
     if (!app) {
       return {
         status: false,
-        error: 'Application not found',
+        error: {
+          message: 'Application not found',
+        },
+        result: null,
       };
     }
     try {
@@ -123,12 +143,20 @@ export class ApplicationService {
       if (response.statusCode === true && response.result) {
         return {
           status: true,
+          error: null,
+          result: {
+            name: data.name,
+            amount: data.amount,
+          },
         };
       }
     } catch (error) {
       return {
         status: false,
-        error: error.message,
+        result: null,
+        error: {
+          message: error.message,
+        },
       };
     }
   }
@@ -138,7 +166,10 @@ export class ApplicationService {
     if (!token) {
       return {
         status: false,
-        error: 'Authorization token is missing',
+        result: null,
+        error: {
+          message: 'Authorization token is missing',
+        },
       };
     }
 
@@ -147,7 +178,10 @@ export class ApplicationService {
     if (!app) {
       return {
         status: false,
-        error: 'Application not found',
+        result: null,
+        error: {
+          message: 'Application not found',
+        },
       };
     }
 
@@ -167,18 +201,27 @@ export class ApplicationService {
       if (is_anorbank_new_client === true) {
         return {
           status: true,
-          is_otp: true,
+          result: {
+            is_otp: true,
+          },
+          error: null,
         };
       } else {
         return {
           status: true,
-          is_otp: false,
+          result: {
+            is_otp: true,
+          },
+          error: null,
         };
       }
     } catch (error) {
       return {
         status: false,
-        error: error.message,
+        result: null,
+        error: {
+          message: error.message,
+        },
       };
     }
   }
@@ -188,7 +231,10 @@ export class ApplicationService {
     if (!token) {
       return {
         status: false,
-        error: 'Authorization token is missing',
+        result: null,
+        error: {
+          message: 'Authorization token is missing',
+        },
       };
     }
 
@@ -197,7 +243,10 @@ export class ApplicationService {
     if (!app) {
       return {
         status: false,
-        error: 'Application not found',
+        result: null,
+        error: {
+          message: 'Application not found',
+        },
       };
     }
 
@@ -218,18 +267,25 @@ export class ApplicationService {
         };
         return {
           status: true,
-          reuslt:data,
+          result: data,
+          error: null,
         };
       } else {
         return {
-          status: true,
-          error: apiResponse.message,
+          status: false,
+          result: null,
+          error: {
+            message: apiResponse.message,
+          },
         };
       }
     } catch (error) {
       return {
         status: false,
-        error: error.message,
+        result: null,
+        error: {
+          message: error.message,
+        },
       };
     }
   }
@@ -240,7 +296,10 @@ export class ApplicationService {
       if (!token) {
         return {
           status: false,
-          error: 'Authorization token is missing',
+          result: null,
+          error: {
+            message: 'Authorization token is missing',
+          },
         };
       }
 
@@ -249,7 +308,10 @@ export class ApplicationService {
       if (!app) {
         return {
           status: false,
-          error: 'Application not found',
+          result: null,
+          error: {
+            message: 'Application not found',
+          },
         };
       }
 
@@ -264,17 +326,23 @@ export class ApplicationService {
         body,
       );
       if (response.statusCode === 201) {
-        return { status: true };
+        return { status: true, result: { message: 'success' }, error: null };
       }
 
       return {
         status: false,
-        error: response.message || 'API request failed',
+        result: null,
+        error: {
+          message: response.message || 'API request failed',
+        },
       };
     } catch (error) {
       return {
         status: false,
-        error: error.message || 'An unexpected error occurred',
+        result: null,
+        error: {
+          message: error.message || 'An unexpected error occurred',
+        },
       };
     }
   }
@@ -284,7 +352,10 @@ export class ApplicationService {
     if (!token) {
       return {
         status: false,
-        error: 'Authorization token is missing',
+        result: null,
+        error: {
+          message: 'Authorization token is missing',
+        },
       };
     }
 
@@ -293,7 +364,10 @@ export class ApplicationService {
     if (!app) {
       return {
         status: false,
-        error: 'Application not found',
+        result: null,
+        error: {
+          message: 'Application not found',
+        },
       };
     }
 
@@ -307,7 +381,10 @@ export class ApplicationService {
     if (!scheduleFileUrl) {
       return res.status(404).json({
         status: false,
-        error: 'Schedule file not found',
+        result: null,
+        error: {
+          message: 'Schedule file not found',
+        },
       });
     }
 
@@ -333,7 +410,10 @@ export class ApplicationService {
       console.error('Error downloading the schedule file:', error);
       return res.status(500).json({
         status: false,
-        error: 'Error downloading the schedule file',
+        result: null,
+        error: {
+          message: 'Error downloading the schedule file',
+        },
       });
     }
   }
@@ -343,7 +423,10 @@ export class ApplicationService {
     if (!token) {
       return {
         status: false,
-        error: 'Authorization token is missing',
+        result: null,
+        error: {
+          message: 'Authorization token is missing',
+        },
       };
     }
 
@@ -351,7 +434,10 @@ export class ApplicationService {
     if (!app) {
       return {
         status: false,
-        error: 'Application not found',
+        result: null,
+        error: {
+          message: 'Application not found',
+        },
       };
     }
 
@@ -383,17 +469,24 @@ export class ApplicationService {
             },
             products: result.products || [],
           },
+          error: null,
         };
       } else {
         return {
           status: false,
-          error: 'Failed to fetch application details',
+          result: null,
+          error: {
+            message: 'Failed to fetch application details emulator',
+          },
         };
       }
     } catch (error) {
       return {
         status: false,
-        error: error.message,
+        result: null,
+        error: {
+          message: error.message,
+        },
       };
     }
   }
@@ -403,7 +496,10 @@ export class ApplicationService {
     if (!token) {
       return {
         status: false,
-        error: 'Authorization token is missing',
+        result: null,
+        error: {
+          message: 'Authorization token is missing',
+        },
       };
     }
 
@@ -412,7 +508,10 @@ export class ApplicationService {
     if (!app) {
       return {
         status: false,
-        error: 'Application not found',
+        result: null,
+        error: {
+          message: 'Application not found',
+        },
       };
     }
 
@@ -423,11 +522,16 @@ export class ApplicationService {
     if (response.statusCode == true) {
       return {
         status: true,
+        result: null,
+        error: null,
       };
     }
     return {
       status: false,
-      error: response.message,
+      result: null,
+      error: {
+        message: response.message,
+      },
     };
   }
 
@@ -436,7 +540,10 @@ export class ApplicationService {
     if (!token) {
       return {
         status: false,
-        error: 'Authorization token is missing',
+        result: null,
+        error: {
+          message: 'Authorization token is missing',
+        },
       };
     }
 
@@ -445,7 +552,10 @@ export class ApplicationService {
     if (!app) {
       return {
         status: false,
-        error: 'Application not found',
+        result: null,
+        error: {
+          message: 'Application not found',
+        },
       };
     }
 
@@ -457,10 +567,16 @@ export class ApplicationService {
     if (response.reason_of_reject == 'Клиент отказался') {
       return {
         status: true,
+        result: null,
+        error: null,
       };
     }
     return {
       status: false,
+      result: null,
+      error: {
+        message: response?.message,
+      },
     };
   }
 }

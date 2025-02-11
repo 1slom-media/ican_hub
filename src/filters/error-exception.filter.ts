@@ -15,7 +15,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     response.status(400).json({
       status: false,
-      error: exceptionResponse.message || 'Invalid request',
+      error: {
+        message: exceptionResponse.message || 'Invalid request',
+      },
+      result: null,
     });
   }
 }

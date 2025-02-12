@@ -96,7 +96,7 @@ export class ApplicationService {
     } else {
       return {
         status: true,
-        result: null,
+        result: { message: 'waiting' },
         error: null,
       };
     }
@@ -522,7 +522,7 @@ export class ApplicationService {
     if (response.statusCode == true) {
       return {
         status: true,
-        result: null,
+        result: { message: 'success' },
         error: null,
       };
     }
@@ -560,14 +560,14 @@ export class ApplicationService {
     }
 
     const response = await this.apiService.putApiWithToken(
-      `/application/reject/${app.application_id}`,
+      `/application/reject/${app_id}`,
       token,
       { reject_reason: 'Клиент отказался' },
     );
     if (response.reason_of_reject == 'Клиент отказался') {
       return {
         status: true,
-        result: null,
+        result: { message: 'success' },
         error: null,
       };
     }

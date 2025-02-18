@@ -6,6 +6,9 @@ import { ApiClientModule } from './api-client/api-client.module';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
+import { ApplicationIcanEntity } from './application/entity/application.entity';
+import { ProductsIcanEntity } from './application/entity/products.entity';
+import { ErrorIcanEntity } from './application/entity/error.entity';
 
 @Module({
   imports: [
@@ -19,7 +22,7 @@ import { AuthModule } from './auth/auth.module';
       username: process.env.PG_USER,
       password: process.env.PG_PASSWORD,
       database: process.env.PG_DATABASE,
-      entities: [],
+      entities: [ApplicationIcanEntity,ProductsIcanEntity,ErrorIcanEntity],
       synchronize: true,
     }),
     // nasiya db connection

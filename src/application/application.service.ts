@@ -1,21 +1,29 @@
 import { Injectable } from '@nestjs/common';
 import { ApiClientService } from '../api-client/api-client.service';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import {
-  AddPeriodDto,
-  AddProductDto,
+  CreateProductIcanDto,
   GetLimitDto,
   VerifyNewClientDto,
 } from './dto/application.dto';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
+import { ApplicationIcanEntity } from './entity/application.entity';
+import { ProductsIcanEntity } from './entity/products.entity';
+import { ErrorIcanEntity } from './entity/error.entity';
 
 @Injectable()
 export class ApplicationService {
   constructor(
     @InjectDataSource('secondary')
     private readonly secondaryDataSource: DataSource,
+    @InjectRepository(ApplicationIcanEntity, 'main')
+    private readonly applicationRepo: Repository<ApplicationIcanEntity>,
+    @InjectRepository(ProductsIcanEntity, 'main')
+    private readonly productRepo: Repository<ProductsIcanEntity>,
+    @InjectRepository(ErrorIcanEntity, 'main')
+    private readonly errorRepo: Repository<ErrorIcanEntity>,
     private readonly apiService: ApiClientService,
     private readonly httpService: HttpService,
   ) {}
@@ -31,6 +39,7 @@ export class ApplicationService {
     return result.length > 0 ? result[0] : null;
   }
 
+  // get limit
   async getLimit(data: GetLimitDto, req: Request) {
     console.log(data, 'limit data');
     const token = req.headers.authorization;
@@ -60,7 +69,7 @@ export class ApplicationService {
       `/application/scoring/${data.app_id}`,
       token,
     );
-
+    await this.applicationRepo.save(app.id);
     if (response.limit_amount > 0) {
       let limit = [];
       const periodResponse = await this.apiService.getApi(
@@ -102,8 +111,8 @@ export class ApplicationService {
     }
   }
 
-  async addProduct(data: AddProductDto, req: Request) {
-    console.log(data, 'addProduct data');
+  // add product add + period + delete product
+  async addProduct(data: CreateProductIcanDto, req: Request) {
     const token = req.headers.authorization;
     if (!token) {
       return {
@@ -127,77 +136,73 @@ export class ApplicationService {
       };
     }
     try {
-      const body = {
-        name: data.name,
-        amount: data.amount,
-        price: data.amount,
-        count: 1,
-        application: data.app_id,
-      };
-
-      const response = await this.apiService.postApiWithToken(
-        '/products',
-        token,
-        body,
+      await this.applicationRepo.update(
+        { app_id: data.app_id },
+        { period: data.period },
       );
-      if (response.statusCode === true && response.result) {
-        return {
-          status: true,
-          error: null,
-          result: {
-            name: data.name,
-            amount: data.amount,
-          },
+
+      for (const product of data.products) {
+        const body = {
+          name: product.name,
+          amount: product.amount,
+          price: product.amount,
+          count: 1,
+          application: data.app_id,
         };
+
+        const response = await this.apiService.postApiWithToken(
+          '/products',
+          token,
+          body,
+        );
+        if (response.statusCode === true && response.result) {
+          const productEntity = new ProductsIcanEntity();
+          productEntity.app_id = response.result.application.toString();
+          productEntity.product_id = response.result.id.toString();
+          productEntity.name = response.result.name;
+          productEntity.amount = response.result.amount.toString();
+          await this.productRepo.save(productEntity);
+        }
       }
-    } catch (error) {
-      return {
-        status: false,
-        result: null,
-        error: {
-          message: error.message,
-        },
-      };
-    }
-  }
 
-  async addPeriod(data: AddPeriodDto, req: Request) {
-    const token = req.headers.authorization;
-    if (!token) {
-      return {
-        status: false,
-        result: null,
-        error: {
-          message: 'Authorization token is missing',
-        },
-      };
-    }
-
-    const app = await this.appGetOne(data.app_id);
-
-    if (!app) {
-      return {
-        status: false,
-        result: null,
-        error: {
-          message: 'Application not found',
-        },
-      };
-    }
-
-    try {
-      const response = await this.apiService.postApiWithToken(
+      const periodResponse = await this.apiService.postApiWithToken(
         `/application/approve/${data.app_id}`,
         token,
-        { period: app.period },
+        { period: data.period },
       );
-      console.log(response, 'period');
-
+      console.log(`Period response->:`, periodResponse);
+      if (periodResponse.statusCode === 400) {
+        await this.deleteProductByAppId(data.app_id, req);
+        return {
+          status: false,
+          error: {
+            message: periodResponse.message,
+          },
+          result: null,
+        };
+      }
       const apiResponse = await this.apiService.getApi(
         `/application/get/status/${data.app_id}`,
         token,
       );
-      const { is_anorbank_new_client } = apiResponse?.result;
+      const { b_state, b_status, is_anorbank_new_client } = apiResponse.result;
+
+      // error bank state
+      // const error = await this.errorRepo.findOne({
+      //   where: { b_state, b_status },
+      // });
+      // if (error) {
+      //   const deleted = await this.deleteProductByAppId(data.app_id, req);
+      //   console.log(deleted, 'dlt');
+      //   return {
+      //     status: false,
+      //     error: {
+      //       message: error.description,
+      //     },
+      //     result: null,
+      //   };
+      // }
+
       if (is_anorbank_new_client === true) {
         return {
           status: true,
@@ -210,7 +215,7 @@ export class ApplicationService {
         return {
           status: true,
           result: {
-            is_otp: true,
+            is_otp: false,
           },
           error: null,
         };
@@ -226,7 +231,8 @@ export class ApplicationService {
     }
   }
 
-  async getStatus(app_id: string, req: Request) {
+  // get info
+  async getById(app_id: string, req: Request) {
     const token = req.headers.authorization;
     if (!token) {
       return {
@@ -239,7 +245,6 @@ export class ApplicationService {
     }
 
     const app = await this.appGetOne(app_id);
-
     if (!app) {
       return {
         status: false,
@@ -251,23 +256,43 @@ export class ApplicationService {
     }
 
     try {
+      const response = await this.apiService.getApi(
+        `/application/get/${app_id}`,
+        token,
+      );
+
       const apiResponse = await this.apiService.getApi(
         `/application/get/status/${app_id}`,
         token,
       );
-      if (apiResponse.statusCode === 200 && apiResponse.result) {
-        const { result } = apiResponse;
-        const data = {
-          id: result.id,
-          b_status: result.b_status,
-          b_state: result.b_state,
-          status: result.status,
-          state: result.state,
-          is_anorbank_new_client: result.is_anorbank_new_client,
-        };
+
+      if (response.statusCode === 200 && response.result) {
+        const result = response.result;
+
         return {
           status: true,
-          result: data,
+          result: {
+            id: result.id,
+            period: result.period,
+            provider: result.provider,
+            owner_phone: result.owner_phone,
+            close_phone: result.close_phone,
+            b_status: apiResponse.result.b_status,
+            b_state: apiResponse.result.b_state,
+            status: apiResponse.result.status,
+            state: apiResponse.result.state,
+            is_anorbank_new_client: apiResponse.result.is_anorbank_new_client,
+            user: {
+              name: result.user?.name,
+              surname: result.user?.surname,
+              fathers_name: result.user?.fathers_name,
+            },
+            merchant: {
+              modelId: result.merchant?.id,
+              name: result.merchant?.name,
+            },
+            products: result.products || [],
+          },
           error: null,
         };
       } else {
@@ -275,7 +300,7 @@ export class ApplicationService {
           status: false,
           result: null,
           error: {
-            message: apiResponse.message,
+            message: 'Failed to fetch application details emulator',
           },
         };
       }
@@ -290,6 +315,7 @@ export class ApplicationService {
     }
   }
 
+  // verify otp
   async verifyOtp(data: VerifyNewClientDto, req: Request) {
     try {
       const token = req.headers.authorization;
@@ -347,7 +373,8 @@ export class ApplicationService {
     }
   }
 
-  async getSchedule(app_id: string, req: Request, res: Response) {
+  // get contract
+  async getSchedule(app_id: string, req: Request) {
     const token = req.headers.authorization;
     if (!token) {
       return {
@@ -379,107 +406,25 @@ export class ApplicationService {
     const scheduleFileUrl = response?.result?.schedule_file;
 
     if (!scheduleFileUrl) {
-      return res.status(404).json({
+      return {
         status: false,
         result: null,
         error: {
           message: 'Schedule file not found',
         },
-      });
-    }
-
-    try {
-      const fileResponse = await this.httpService.axiosRef({
-        url: scheduleFileUrl,
-        method: 'GET',
-        responseType: 'stream',
-      });
-
-      const safeFilename = encodeURIComponent(
-        response.result.filename || 'schedule',
-      );
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="${safeFilename}.pdf"`,
-      );
-
-      fileResponse.data.pipe(res);
-    } catch (error) {
-      console.error('Error downloading the schedule file:', error);
-      return res.status(500).json({
-        status: false,
-        result: null,
-        error: {
-          message: 'Error downloading the schedule file',
-        },
-      });
-    }
-  }
-
-  async getById(app_id: string, req: Request) {
-    const token = req.headers.authorization;
-    if (!token) {
-      return {
-        status: false,
-        result: null,
-        error: {
-          message: 'Authorization token is missing',
-        },
-      };
-    }
-
-    const app = await this.appGetOne(app_id);
-    if (!app) {
-      return {
-        status: false,
-        result: null,
-        error: {
-          message: 'Application not found',
-        },
       };
     }
 
     try {
-      const response = await this.apiService.getApi(
-        `/application/get/${app_id}`,
-        token,
-      );
-
-      if (response.statusCode === 200 && response.result) {
-        const result = response.result;
-
-        return {
-          status: true,
-          result: {
-            id: result.id,
-            period: result.period,
-            provider: result.provider,
-            owner_phone: result.owner_phone,
-            close_phone: result.close_phone,
-            user: {
-              name: result.user?.name,
-              surname: result.user?.surname,
-              fathers_name: result.user?.fathers_name,
-            },
-            merchant: {
-              modelId: result.merchant?.id,
-              name: result.merchant?.name,
-            },
-            products: result.products || [],
-          },
-          error: null,
-        };
-      } else {
-        return {
-          status: false,
-          result: null,
-          error: {
-            message: 'Failed to fetch application details emulator',
-          },
-        };
-      }
+      return {
+        status: true,
+        result: {
+          pdf_url: scheduleFileUrl,
+          month: response?.result?.contract_period,
+          client_full_name: response?.result?.client_full_name,
+        },
+        error: null,
+      };
     } catch (error) {
       return {
         status: false,
@@ -491,6 +436,7 @@ export class ApplicationService {
     }
   }
 
+  // delete product
   async deleteProductByAppId(app_id: string, req: Request) {
     const token = req.headers.authorization;
     if (!token) {
@@ -535,6 +481,7 @@ export class ApplicationService {
     };
   }
 
+  // reject product
   async rejectApp(app_id: string, req: Request) {
     const token = req.headers.authorization;
     if (!token) {

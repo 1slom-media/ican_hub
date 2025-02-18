@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 
 export class GetLimitDto {
   @ApiProperty({ description: 'Application ID' })
@@ -11,18 +12,14 @@ export class GetLimitDto {
   merchant_id: string;
 }
 
-export class AddProductDto {
+export class VerifyNewClientDto {
   @ApiProperty({ description: 'Application ID' })
   @IsString()
   app_id: string;
 
-  @ApiProperty({ description: 'product amount' })
+  @ApiProperty({ description: 'Otp', example: '123456' })
   @IsString()
-  amount: string;
-
-  @ApiProperty({ description: 'product name' })
-  @IsString()
-  name: string;
+  otp: string;
 }
 
 export class AddPeriodDto {
@@ -35,12 +32,36 @@ export class AddPeriodDto {
   period: string;
 }
 
-export class VerifyNewClientDto {
+export class CreateProductIcanDto {
   @ApiProperty({ description: 'Application ID' })
   @IsString()
   app_id: string;
 
-  @ApiProperty({ description: 'Otp', example: '123456' })
+  @ApiProperty({ description: 'Month' })
   @IsString()
-  otp: string;
+  period: string;
+
+  @ApiProperty({
+    description: 'Products array',
+    isArray: true,
+    type: () => ProductDto,
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductDto)
+  products: ProductDto[];
+}
+
+export class ProductDto {
+  @ApiProperty({ description: 'Product name' })
+  @IsString()
+  name: string;
+
+  @ApiProperty({ description: 'Product amount' })
+  @IsString()
+  amount: string;
+
+  @IsOptional()
+  @IsString()
+  product_id: string;
 }

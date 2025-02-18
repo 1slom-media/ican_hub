@@ -6,12 +6,10 @@ import {
   Param,
   Post,
   Req,
-  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
-  AddPeriodDto,
-  AddProductDto,
+  CreateProductIcanDto,
   GetLimitDto,
   VerifyNewClientDto,
 } from './dto/application.dto';
@@ -31,15 +29,9 @@ export class ApplicationController {
   }
 
   @ApiOperation({ summary: 'Ican add product' })
-  @Post('/broker/add-product')
-  async addProduct(@Body() data: AddProductDto, @Req() req: Request) {
+  @Post('/broker/create-contract')
+  async addProduct(@Body() data: CreateProductIcanDto, @Req() req: Request) {
     return this.applicationService.addProduct(data, req);
-  }
-
-  @ApiOperation({ summary: 'Ican add period' })
-  @Post('/broker/add-period')
-  async addPeriod(@Body() data: AddPeriodDto, @Req() req: Request) {
-    return this.applicationService.addPeriod(data, req);
   }
 
   @ApiOperation({ summary: 'Ican verify contract otp if new_client true' })
@@ -48,10 +40,10 @@ export class ApplicationController {
     return this.applicationService.verifyOtp(data, req);
   }
 
-  @ApiOperation({ summary: 'Ican get status application' })
-  @Get('/broker/get/status/:id')
-  async getStatus(@Param('id') id: string, @Req() req: Request) {
-    return this.applicationService.getStatus(id, req);
+  @ApiOperation({ summary: 'Ican get one' })
+  @Get('/broker/get-info/:id')
+  async getOne(@Param('id') id: string, @Req() req: Request) {
+    return this.applicationService.getById(id, req);
   }
 
   @ApiOperation({ summary: 'Ican get schedule' })
@@ -59,15 +51,8 @@ export class ApplicationController {
   async getContract(
     @Param('id') id: string,
     @Req() req: Request,
-    @Res() res: Response,
   ) {
-    return this.applicationService.getSchedule(id, req, res);
-  }
-
-  @ApiOperation({ summary: 'Ican get one' })
-  @Get('/broker/get/:id')
-  async getOne(@Param('id') id: string, @Req() req: Request) {
-    return this.applicationService.getById(id, req);
+    return this.applicationService.getSchedule(id, req);
   }
 
   @ApiOperation({ summary: 'Ican delete product by Id' })

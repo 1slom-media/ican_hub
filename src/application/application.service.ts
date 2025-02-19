@@ -247,7 +247,15 @@ WHERE a.id = $1;
     } catch (error) {
       return {
         status: false,
-        result: null,
+        result: {
+          client_info: {
+            name: app?.name,
+            surname: app?.surname,
+            fathers_name: app?.fathers_name,
+            owner_phone: app?.owner_phone,
+            close_phone: app?.close_phone,
+          },
+        },
         error: {
           message: error.message,
         },

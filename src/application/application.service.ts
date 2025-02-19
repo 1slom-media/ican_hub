@@ -32,8 +32,18 @@ export class ApplicationService {
   async appGetOne(id: string) {
     const reportsRepo = this.secondaryDataSource.getRepository('applications');
     const query = `
-        SELECT id, status, state
-        FROM applications WHERE id = $1;
+SELECT 
+    a.id, 
+    a.status, 
+    a.state, 
+    a.owner_phone, 
+    a.close_phone, 
+    c.name, 
+    c.surname,
+    c.fathers_name
+FROM applications a
+JOIN client_user c ON a."user" = c.id
+WHERE a.id = $1;
     `;
     const result = await reportsRepo.query(query, [id]);
     return result.length > 0 ? result[0] : null;
@@ -207,6 +217,13 @@ export class ApplicationService {
         return {
           status: true,
           result: {
+            client_info: {
+              name: app?.name,
+              surname: app?.surname,
+              fathers_name: app?.fathers_name,
+              owner_phone: app?.owner_phone,
+              close_phone: app?.close_phone,
+            },
             is_otp: true,
           },
           error: null,
@@ -215,6 +232,13 @@ export class ApplicationService {
         return {
           status: true,
           result: {
+            client_info: {
+              name: app?.name,
+              surname: app?.surname,
+              fathers_name: app?.fathers_name,
+              owner_phone: app?.owner_phone,
+              close_phone: app?.close_phone,
+            },
             is_otp: false,
           },
           error: null,
@@ -275,17 +299,17 @@ export class ApplicationService {
             id: result.id,
             period: result.period,
             provider: result.provider,
-            owner_phone: result.owner_phone,
-            close_phone: result.close_phone,
             b_status: apiResponse.result.b_status,
             b_state: apiResponse.result.b_state,
             status: apiResponse.result.status,
             state: apiResponse.result.state,
             is_anorbank_new_client: apiResponse.result.is_anorbank_new_client,
-            user: {
+            client_info: {
               name: result.user?.name,
               surname: result.user?.surname,
               fathers_name: result.user?.fathers_name,
+              owner_phone: result.owner_phone,
+              close_phone: result.close_phone,
             },
             merchant: {
               modelId: result.merchant?.id,

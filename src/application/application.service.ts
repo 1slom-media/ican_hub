@@ -38,6 +38,7 @@ SELECT
     a.state, 
     a.owner_phone, 
     a.close_phone, 
+    a.reason_error_davrbank,
     c.name, 
     c.surname,
     c.fathers_name
@@ -79,25 +80,36 @@ WHERE a.id = $1;
       `/application/scoring/${data.app_id}`,
       token,
     );
-    await this.applicationRepo.save(app.id);
+    await this.applicationRepo.save({ app_id: data.app_id });
+
     if (response.limit_amount > 0) {
-      let limit = [];
-      const periodResponse = await this.apiService.getApi(
-        `/application/period-summ?modelId=${data.merchant_id}&modelName=merchant&summ=${response.limit_amount}`,
-        token,
-      );
+      let limit: { month: number; amount: number }[] = [];
 
-      if (periodResponse.statusCode !== 200 || !periodResponse.result) {
-        return {
-          status: false,
-          error: { message: 'Error fetching period-summ data' },
-        };
+      if (response.provider === 'DAVRBANK') {
+        const months = [3, 6, 9, 12];
+        limit = months.map((month) => ({
+          month: month,
+          amount:(response.limit_amount / 12) * month,
+        }));
+      } else if (response.provider === 'ANORBANK') {
+        const periodResponse = await this.apiService.getApi(
+          `/application/period-summ?modelId=${data.merchant_id}&modelName=merchant&summ=${response.limit_amount}&categoryType=A`,
+          token,
+        );
+
+        if (periodResponse.statusCode !== 200 || !periodResponse.result) {
+          return {
+            status: false,
+            result: null,
+            error: { message: 'Error fetching period-summ data' },
+          };
+        }
+
+        limit = periodResponse.result.map((item) => ({
+          month: item.period,
+          amount: item.value,
+        }));
       }
-
-      limit = periodResponse.result.map((item) => ({
-        month: item.period,
-        amount: item.value,
-      }));
 
       return {
         status: true,
@@ -108,7 +120,7 @@ WHERE a.id = $1;
       return {
         status: false,
         error: {
-          message: response.message || 'No limit available',
+          message: app.reason_error_davrbank || 'No limit available',
         },
         result: null,
       };
@@ -188,7 +200,15 @@ WHERE a.id = $1;
           error: {
             message: periodResponse.message,
           },
-          result: null,
+          result: {
+            client_info: {
+              name: app?.name,
+              surname: app?.surname,
+              fathers_name: app?.fathers_name,
+              owner_phone: app?.owner_phone,
+              close_phone: app?.close_phone,
+            },
+          },
         };
       }
       const apiResponse = await this.apiService.getApi(

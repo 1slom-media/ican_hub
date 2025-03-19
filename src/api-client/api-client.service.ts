@@ -14,7 +14,6 @@ export class ApiClientService {
     if (!token.startsWith('Bearer ')) {
       token = `Bearer ${token}`;
     }
-
     try {
       const response = await this.axiosInstance({
         method: 'get',
@@ -23,19 +22,16 @@ export class ApiClientService {
           Authorization: token,
         },
       });
-      console.log(response.data);
       return response.data;
     } catch (error: any) {
+      const statusCode = error.response?.status || 500;
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
         'Unknown error occurred';
-      return {
-        status: false,
-        error: {
-          message: `API request failed: ${errorMessage}`,
-        },
-        result:null,
+      throw {
+        status: statusCode,
+        message: `API request failed: ${errorMessage}`,
       };
     }
   }
@@ -57,7 +53,15 @@ export class ApiClientService {
       console.log(response.data);
       return response.data;
     } catch (error: any) {
-      return error.response?.data;
+      const statusCode = error.response?.status || 500;
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Unknown error occurred';
+      throw {
+        status: statusCode,
+        message: `API request failed: ${errorMessage}`,
+      };
     }
   }
 
@@ -95,7 +99,15 @@ export class ApiClientService {
 
       return response.data;
     } catch (error: any) {
-      return error.response?.data;
+      const statusCode = error.response?.status || 500;
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Unknown error occurred';
+      throw {
+        status: statusCode,
+        message: `API request failed: ${errorMessage}`,
+      };
     }
   }
 
@@ -115,7 +127,15 @@ export class ApiClientService {
 
       return response.data;
     } catch (error: any) {
-      return error.response?.data;
+      const statusCode = error.response?.status || 500;
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Unknown error occurred';
+      throw {
+        status: statusCode,
+        message: `API request failed: ${errorMessage}`,
+      };
     }
   }
 }

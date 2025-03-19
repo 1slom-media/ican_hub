@@ -35,7 +35,8 @@ export class ApplicationService {
 SELECT 
     a.id, 
     a.status, 
-    a.state, 
+    a.state,
+    a.limit_amount, 
     a.owner_phone, 
     a.close_phone, 
     a.reason_error_davrbank,
@@ -63,9 +64,9 @@ WHERE a.id = $1;
           result: null,
         });
       }
-  
+
       const app = await this.appGetOne(data.app_id);
-  
+
       if (!app) {
         return res.status(404).json({
           status: false,
@@ -75,16 +76,16 @@ WHERE a.id = $1;
           result: null,
         });
       }
-  
+
       const response = await this.apiService.getApi(
         `/application/scoring/${data.app_id}`,
         token,
       );
       await this.applicationRepo.save({ app_id: data.app_id });
-  
+
       if (response.limit_amount > 0) {
         let limit: { month: number; amount: number }[] = [];
-  
+
         if (response.provider === 'DAVRBANK') {
           const months = [3, 6, 9, 12];
           limit = months.map((month) => ({
@@ -96,7 +97,7 @@ WHERE a.id = $1;
             `/application/period-summ?modelId=${data.merchant_id}&modelName=merchant&summ=${response.limit_amount}&categoryType=A`,
             token,
           );
-  
+
           if (periodResponse.statusCode !== 200 || !periodResponse.result) {
             return res.status(500).json({
               status: false,
@@ -104,13 +105,13 @@ WHERE a.id = $1;
               error: { message: 'Error fetching period-summ data' },
             });
           }
-  
+
           limit = periodResponse.result.map((item) => ({
             month: item.period,
             amount: item.value,
           }));
         }
-  
+
         return res.status(200).json({
           status: true,
           result: { provider: response?.provider, limit },
@@ -142,7 +143,7 @@ WHERE a.id = $1;
       });
     }
   }
-  
+
   // add product add + period + delete product
   async addProduct(data: CreateProductIcanDto, req: Request, res: Response) {
     try {
@@ -154,7 +155,7 @@ WHERE a.id = $1;
           result: null,
         });
       }
-  
+
       const app = await this.appGetOne(data.app_id);
       if (!app) {
         return res.status(404).json({
@@ -163,10 +164,20 @@ WHERE a.id = $1;
           result: null,
         });
       }
-  
+      if (app.limit_amount <= 0 || app.limit_amount <= '0') {
+        return res.status(400).json({
+          status: false,
+          error: { message: 'Клиенту не одобрен лимит на рассрочку' },
+          result: null,
+        });
+      }
+
       // Ariza periodini yangilash
-      await this.applicationRepo.update({ app_id: data.app_id }, { period: data.period });
-  
+      await this.applicationRepo.update(
+        { app_id: data.app_id },
+        { period: data.period },
+      );
+
       for (const product of data.products) {
         const body = {
           name: product.name,
@@ -175,8 +186,12 @@ WHERE a.id = $1;
           count: 1,
           application: data.app_id,
         };
-  
-        const response = await this.apiService.postApiWithToken('/products', token, body);
+
+        const response = await this.apiService.postApiWithToken(
+          '/products',
+          token,
+          body,
+        );
         if (response.statusCode === true && response.result) {
           const productEntity = new ProductsIcanEntity();
           productEntity.app_id = response.result.application.toString();
@@ -186,14 +201,14 @@ WHERE a.id = $1;
           await this.productRepo.save(productEntity);
         }
       }
-  
+
       // Arizani tasdiqlash
       const periodResponse = await this.apiService.postApiWithToken(
         `/application/approve/${data.app_id}`,
         token,
-        { period: data.period }
+        { period: data.period },
       );
-  
+
       if (periodResponse.statusCode === 400) {
         await this.deleteProductByAppId(data.app_id, req, res);
         return res.status(400).json({
@@ -210,11 +225,14 @@ WHERE a.id = $1;
           },
         });
       }
-  
+
       // Ariza holatini olish
-      const apiResponse = await this.apiService.getApi(`/application/get/status/${data.app_id}`, token);
+      const apiResponse = await this.apiService.getApi(
+        `/application/get/status/${data.app_id}`,
+        token,
+      );
       const { b_state, b_status, is_anorbank_new_client } = apiResponse.result;
-  
+
       // Bank holatini tekshirish (Izohga olingan kod)
       /*
       const error = await this.errorRepo.findOne({ where: { b_state, b_status } });
@@ -227,7 +245,7 @@ WHERE a.id = $1;
         });
       }
       */
-  
+
       return res.status(200).json({
         status: true,
         result: {
@@ -247,18 +265,27 @@ WHERE a.id = $1;
         status: false,
         result: {
           client_info: {
-            name: data?.app_id ? (await this.appGetOne(data.app_id))?.name : null,
-            surname: data?.app_id ? (await this.appGetOne(data.app_id))?.surname : null,
-            fathers_name: data?.app_id ? (await this.appGetOne(data.app_id))?.fathers_name : null,
-            owner_phone: data?.app_id ? (await this.appGetOne(data.app_id))?.owner_phone : null,
-            close_phone: data?.app_id ? (await this.appGetOne(data.app_id))?.close_phone : null,
+            name: data?.app_id
+              ? (await this.appGetOne(data.app_id))?.name
+              : null,
+            surname: data?.app_id
+              ? (await this.appGetOne(data.app_id))?.surname
+              : null,
+            fathers_name: data?.app_id
+              ? (await this.appGetOne(data.app_id))?.fathers_name
+              : null,
+            owner_phone: data?.app_id
+              ? (await this.appGetOne(data.app_id))?.owner_phone
+              : null,
+            close_phone: data?.app_id
+              ? (await this.appGetOne(data.app_id))?.close_phone
+              : null,
           },
         },
         error: { message: error.message || 'An unexpected error occurred' },
       });
     }
   }
-  
 
   // get info
   async getById(app_id: string, req: Request, res: Response) {
@@ -350,7 +377,7 @@ WHERE a.id = $1;
           message: error.message || 'Unknown error occurred',
         },
       });
-    } 
+    }
   }
 
   // verify otp
@@ -366,9 +393,9 @@ WHERE a.id = $1;
           },
         });
       }
-  
+
       const app = await this.appGetOne(data.app_id);
-  
+
       if (!app) {
         return res.status(404).json({
           status: false,
@@ -378,22 +405,24 @@ WHERE a.id = $1;
           },
         });
       }
-  
+
       const body = {
         id: data.app_id,
         otp: data.otp,
       };
-  
+
       const response = await this.apiService.postApiWithToken(
         '/application/otp?type=new_client',
         token,
         body,
       );
-  
+
       if (response.statusCode === 201) {
-        return res.status(201).json({ status: true, result: { message: 'success' }, error: null });
+        return res
+          .status(201)
+          .json({ status: true, result: { message: 'success' }, error: null });
       }
-  
+
       return res.status(response.statusCode || 400).json({
         status: false,
         result: null,
@@ -410,7 +439,7 @@ WHERE a.id = $1;
         },
       });
     }
-  }  
+  }
 
   // get contract
   async getSchedule(app_id: string, req: Request, res: Response) {
@@ -425,7 +454,7 @@ WHERE a.id = $1;
           },
         });
       }
-  
+
       const app = await this.appGetOne(app_id);
       if (!app) {
         return res.status(404).json({
@@ -436,12 +465,12 @@ WHERE a.id = $1;
           },
         });
       }
-  
+
       const response = await this.apiService.getApi(
         `/application/schedule/${app_id}`,
         token,
       );
-  
+
       const scheduleFileUrl = response?.result?.schedule_file;
       if (!scheduleFileUrl) {
         return res.status(404).json({
@@ -452,7 +481,7 @@ WHERE a.id = $1;
           },
         });
       }
-  
+
       return res.status(200).json({
         status: true,
         result: {
@@ -472,7 +501,6 @@ WHERE a.id = $1;
       });
     }
   }
-  
 
   // delete product
   async deleteProductByAppId(app_id: string, req: Request, res: Response) {
@@ -487,7 +515,7 @@ WHERE a.id = $1;
           },
         });
       }
-  
+
       const app = await this.appGetOne(app_id);
       if (!app) {
         return res.status(404).json({
@@ -498,12 +526,12 @@ WHERE a.id = $1;
           },
         });
       }
-  
+
       const response = await this.apiService.deleteApiWithToken(
         `/products/application/${app_id}`,
         token,
       );
-  
+
       if (response.statusCode === true) {
         return res.status(200).json({
           status: true,
@@ -511,7 +539,7 @@ WHERE a.id = $1;
           error: null,
         });
       }
-  
+
       return res.status(response.statusCode || 400).json({
         status: false,
         result: null,
@@ -529,7 +557,6 @@ WHERE a.id = $1;
       });
     }
   }
-  
 
   // reject product
   async rejectApp(app_id: string, req: Request, res: Response) {
@@ -544,7 +571,7 @@ WHERE a.id = $1;
           },
         });
       }
-  
+
       const app = await this.appGetOne(app_id);
       if (!app) {
         return res.status(404).json({
@@ -555,13 +582,13 @@ WHERE a.id = $1;
           },
         });
       }
-  
+
       const response = await this.apiService.putApiWithToken(
         `/application/reject/${app_id}`,
         token,
         { reject_reason: 'Клиент отказался' },
       );
-  
+
       if (response?.reason_of_reject === 'Клиент отказался') {
         return res.status(200).json({
           status: true,
@@ -569,7 +596,7 @@ WHERE a.id = $1;
           error: null,
         });
       }
-  
+
       return res.status(response.statusCode || 400).json({
         status: false,
         result: null,
@@ -586,5 +613,5 @@ WHERE a.id = $1;
         },
       });
     }
-  }  
+  }
 }

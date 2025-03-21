@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsNumber, IsString } from 'class-validator';
 import {
   Column,
   Entity,
@@ -25,8 +25,8 @@ export class ProductsIcanEntity {
   name: string;
 
   @Column({ type: 'varchar', nullable: true })
-  @IsString()
-  amount: string;
+  @IsNumber()
+  amount: number;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

@@ -40,6 +40,7 @@ export class ApiClientService {
     if (!token.startsWith('Bearer ')) {
       token = `Bearer ${token}`;
     }
+    console.log(data,'api data');
     try {
       const response = await this.axiosInstance({
         method: 'post',

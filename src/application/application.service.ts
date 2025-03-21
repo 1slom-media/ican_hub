@@ -181,8 +181,8 @@ WHERE a.id = $1;
       for (const product of data.products) {
         const body = {
           name: product.name,
-          amount: product.amount,
-          price: product.amount, // Iltimos, bu to‘g‘riligini tekshiring
+          amount: String(product.amount),
+          price: String(product.amount),
           count: 1,
           application: data.app_id,
         };

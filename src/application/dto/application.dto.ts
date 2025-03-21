@@ -1,6 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 export class GetLimitDto {
   @ApiProperty({ description: 'Application ID' })
@@ -58,8 +64,8 @@ export class ProductDto {
   name: string;
 
   @ApiProperty({ description: 'Product amount' })
-  @IsString()
-  amount: string;
+  @IsNumber()
+  amount: number;
 
   @IsOptional()
   @IsString()

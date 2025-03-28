@@ -28,6 +28,18 @@ export class VerifyNewClientDto {
   otp: string;
 }
 
+export class ResendOtpDto {
+  @ApiProperty({ description: 'Application ID' })
+  @IsString()
+  app_id: string;
+}
+
+export class CalculatePerMonthDto {
+  @ApiProperty({ description: 'Product amount' })
+  @IsNumber()
+  amount: number;
+}
+
 export class AddPeriodDto {
   @ApiProperty({ description: 'Application ID' })
   @IsString()

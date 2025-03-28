@@ -10,8 +10,10 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
+  CalculatePerMonthDto,
   CreateProductIcanDto,
   GetLimitDto,
+  ResendOtpDto,
   VerifyNewClientDto,
 } from './dto/application.dto';
 import { ApplicationService } from './application.service';
@@ -91,5 +93,29 @@ export class ApplicationController {
     @Res() res: Response,
   ) {
     return this.applicationService.rejectApp(id, req, res);
+  }
+
+  @ApiOperation({
+    summary: 'Ican resend verify contract otp if new_client true',
+  })
+  @Post('/broker/confirm-resend-otp')
+  async resendOtp(
+    @Body() data: ResendOtpDto,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    return this.applicationService.resendOtp(data, req, res);
+  }
+
+  @ApiOperation({
+    summary: 'Ican permonth calculate',
+  })
+  @Post('/broker/calculate-per-month')
+  async perMonthCalculate(
+    @Body() data: CalculatePerMonthDto,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    return this.applicationService.calculatePerMonth(data, req, res);
   }
 }

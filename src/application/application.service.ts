@@ -2,8 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { ApiClientService } from '../api-client/api-client.service';
 import { Request, Response } from 'express';
 import {
+  CalculatePerMonthDto,
   CreateProductIcanDto,
   GetLimitDto,
+  ResendOtpDto,
   VerifyNewClientDto,
 } from './dto/application.dto';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
@@ -602,6 +604,112 @@ WHERE a.id = $1;
         result: null,
         error: {
           message: response?.message || 'Failed to reject application',
+        },
+      });
+    } catch (error) {
+      return res.status(error.status || 500).json({
+        status: false,
+        result: null,
+        error: {
+          message: error.message || 'An unexpected error occurred',
+        },
+      });
+    }
+  }
+
+  // resend otp
+  async resendOtp(data: ResendOtpDto, req: Request, res: Response) {
+    try {
+      const token = req.headers.authorization;
+      if (!token) {
+        return res.status(401).json({
+          status: false,
+          result: null,
+          error: {
+            message: 'Authorization token is missing',
+          },
+        });
+      }
+
+      const app = await this.appGetOne(data.app_id);
+
+      if (!app) {
+        return res.status(404).json({
+          status: false,
+          result: null,
+          error: {
+            message: 'Application not found',
+          },
+        });
+      }
+      let type = 'anor';
+      const response = await this.apiService.getApi(
+        `/application/resend/${data.app_id}?type=${type}`,
+        token,
+      );
+
+      if (response.statusCode === 200) {
+        return res
+          .status(200)
+          .json({ status: true, result: { message: 'success' }, error: null });
+      }
+
+      return res.status(response.statusCode || 400).json({
+        status: false,
+        result: null,
+        error: {
+          message: response.message || 'API request failed',
+        },
+      });
+    } catch (error) {
+      return res.status(error.status || 500).json({
+        status: false,
+        result: null,
+        error: {
+          message: error.message || 'An unexpected error occurred',
+        },
+      });
+    }
+  }
+
+  async calculatePerMonth(
+    data: CalculatePerMonthDto,
+    req: Request,
+    res: Response,
+  ) {
+    try {
+      const token = req.headers.authorization;
+      if (!token) {
+        return res.status(401).json({
+          status: false,
+          result: null,
+          error: {
+            message: 'Authorization token is missing',
+          },
+        });
+      }
+
+      const body = {
+        amount: data.amount,
+      };
+
+      const response = await this.apiService.postApiWithToken(
+        '/handbook/period-rate/calculate',
+        token,
+        body,
+      );
+      const {result}=response
+      if (response.statusCode === 201 && result?.result != null) {
+        return res
+          .status(200)
+          .json({ status: true, result: result?.result, error: null });
+      }
+
+      return res.status(400).json({
+        status: false,
+        result: null,
+        error: {
+          message: result.message || 'API request failed',
         },
       });
     } catch (error) {
